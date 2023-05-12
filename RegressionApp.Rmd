@@ -1,0 +1,99 @@
+---
+title: "RegressionApp"
+output: html_document
+date: "2023-03-20"
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# install packages
+library(shiny)
+library(ggplot2)
+library(plotly)
+```
+
+```{r eruptions, echo=FALSE}
+# GOAL: create an app to show linear regression of various data sets, 
+# with random alteration to x values, y values, and number of observations.
+
+# Define UI
+ui <- fluidPage(
+  
+  # Application title
+  titlePanel("Linear Regression App"),
+  
+  # Sidebar layout
+  sidebarLayout(
+    
+    # Sidebar panel
+    sidebarPanel(
+      
+      # Input for X value
+      sliderInput(inputId = "x", label = "X Value:",
+                  min = 1, max = 20, value = 10),
+      
+      # Input for Y value
+      sliderInput(inputId = "y", label = "Y Value:",
+                  min = 1, max = 20, value = 10),
+      
+      # Input for number of observations
+      sliderInput(inputId = "n", label = "Number of Observations:",
+                  min = 10, max = 100, value = 50),
+      
+      # Submit button
+      actionButton(inputId = "submit", label = "Generate!")
+      
+    ),
+    
+    # Main panel
+    mainPanel(
+      
+      # Output plot
+      plotlyOutput(outputId = "scatterplot")
+    )
+  )
+)
+
+# Define server function
+server <- function(input, output) {
+  
+  # Generate random data when the button is pressed
+  data <- eventReactive(input$submit, {
+    x <- input$x
+    y <- input$y
+    n <- input$n
+    data.frame(x = rnorm(n, x, 1),
+               y = rnorm(n, y, 1))
+  })
+  # Calculate regression coefficients
+  regression_coef <- reactive ({
+    lm_fit <- lm(data = data(), formula = y ~ x)
+    list(intercept = lm_fit$coefficients[[1]],
+         slope = lm_fit$coefficients[[2]])
+  })
+  
+  # Render scatterplot using plotly and ggplot
+  output$scatterplot <- renderPlotly ({
+    p <- ggplot(data = data(), aes(x = x, y = y)) +
+      geom_point() +
+      geom_abline(intercept = regression_coef()$intercept,
+                  slope = regression_coef()$slope,
+                  color = "red", linetype = "solid", lwd = 1.2) +
+      labs(title = "Scatterplot of Random X and Y Values",
+           x = "X",
+           y = "Y") +
+      theme(plot.title = element_text(hjust = 0.5))
+    ggplotly(p)
+  })
+}
+
+```
+
+
+```{r tabsets, echo=FALSE}
+# Run the application
+shinyApp(ui = ui, server = server)
+```
+
